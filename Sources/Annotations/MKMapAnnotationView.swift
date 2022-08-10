@@ -58,17 +58,6 @@ class MKMapAnnotationView<Content: View>: MKAnnotationView {
         controller?.removeFromParent()
         controller = nil
     }
-  
-//  private func updateContent(for selectedState: Bool) {
-////    guard let contentView = selectedState ? viewMapAnnotation?.selectedContent : viewMapAnnotation?.content else {
-////      return
-////    }
-//    controller?.view.removeFromSuperview()
-//    let controller = NativeHostingController(rootView: contentView, ignoreSafeArea: true)
-//    addSubview(controller.view)
-//    bounds.size = controller.preferredContentSize
-//    self.controller = controller
-//  }
 }
 
 extension UIHostingController {
