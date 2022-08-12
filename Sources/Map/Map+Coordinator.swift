@@ -11,37 +11,37 @@ import SwiftUI
 #if !os(watchOS)
 
 extension Map {
-
+    
     // MARK: Nested Types
-
+    
     public class Coordinator: NSObject, MKMapViewDelegate {
-
+        
         // MARK: Stored Properties
-
+        
         private var view: Map?
-
+        
         private var annotationContentByObject = [ObjectIdentifier: MapAnnotation]()
         private var annotationContentByID = [AnnotationItems.Element.ID: MapAnnotation]()
-
+        
         private var overlayContentByObject = [ObjectIdentifier: MapOverlay]()
         private var overlayContentByID = [OverlayItems.Element.ID: MapOverlay]()
-
+        
         private var previousBoundary: MKMapView.CameraBoundary?
         private var previousZoomRange: MKMapView.CameraZoomRange?
-
+        
         private var registeredAnnotationTypes = Set<ObjectIdentifier>()
         private var regionIsChanging = false
-
+        
         // MARK: Initialization
-
+        
         override init() {}
-
+        
         deinit {
             MapRegistry.clean()
         }
-
+        
         // MARK: Methods
-
+        
         func update(_ mapView: MKMapView, from newView: Map, context: Context) {
             defer { view = newView }
             let animation = context.transaction.animation
@@ -54,14 +54,14 @@ extension Map {
             updateRegion(on: mapView, from: view, to: newView, animated: animation != nil)
             updateType(on: mapView, from: view, to: newView)
             updateUserTracking(on: mapView, from: view, to: newView)
-
+            
             if let key = context.environment.mapKey {
                 MapRegistry[key] = mapView
             }
         }
-
+        
         // MARK: Helpers
-
+        
         private func registerAnnotationViewIfNeeded(on mapView: MKMapView, for content: MapAnnotation) {
             let contentType = type(of: content)
             let contentTypeKey = ObjectIdentifier(contentType)
@@ -70,16 +70,16 @@ extension Map {
                 contentType.registerView(on: mapView)
             }
         }
-
+        
         private func updateAnnotations(on mapView: MKMapView, from previousView: Map?, to newView: Map) {
             let changes: CollectionDifference<AnnotationItems.Element>
             if let previousView = previousView {
-              changes = newView.annotationItems.difference(from: previousView.annotationItems) { $0.id == $1.id }
+                changes = newView.annotationItems.difference(from: previousView.annotationItems) { $0.id == $1.id }
             } else {
-              changes = newView.annotationItems.difference(from: []) { $0.id == $1.id }
+                changes = newView.annotationItems.difference(from: []) { $0.id == $1.id }
             }
-           
-          for change in changes {
+            
+            for change in changes {
                 switch change {
                 case let .insert(_, item, _):
                     guard !annotationContentByID.keys.contains(item.id) else {
@@ -108,54 +108,54 @@ extension Map {
                 }
             }
         }
-
+        
         private func updateCamera(on mapView: MKMapView, context: Context, animated: Bool) {
             let newBoundary = context.environment.mapBoundary
             if previousBoundary != newBoundary && mapView.cameraBoundary != newBoundary {
                 mapView.setCameraBoundary(newBoundary, animated: animated)
                 previousBoundary = newBoundary
             }
-
+            
             let newZoomRange = context.environment.mapZoomRange
             if previousZoomRange != newZoomRange && mapView.cameraZoomRange != newZoomRange {
                 mapView.setCameraZoomRange(newZoomRange, animated: animated)
                 previousZoomRange = newZoomRange
             }
         }
-
+        
         private func updateInformationVisibility(on mapView: MKMapView, from previousView: Map?, to newView: Map) {
             guard previousView?.informationVisibility != newView.informationVisibility else {
                 return
             }
-
+            
             mapView.showsBuildings = newView.informationVisibility.contains(.buildings)
-            #if !os(tvOS)
+#if !os(tvOS)
             mapView.showsCompass = newView.informationVisibility.contains(.compass)
-            #endif
+#endif
             mapView.showsScale = newView.informationVisibility.contains(.scale)
             mapView.showsTraffic = newView.informationVisibility.contains(.traffic)
             mapView.showsUserLocation = newView.informationVisibility.contains(.userLocation)
-            #if !os(iOS) && !os(tvOS)
+#if !os(iOS) && !os(tvOS)
             mapView.showsZoomControls = newView.informationVisibility.contains(.zoomControls)
             if #available(macOS 11, *) {
                 mapView.showsPitchControl = newView.informationVisibility.contains(.pitchControl)
             }
-            #endif
+#endif
         }
-
+        
         private func updateInteractionModes(on mapView: MKMapView, from previousView: Map?, to newView: Map) {
             guard previousView?.interactionModes != newView.interactionModes else {
                 return
             }
-
+            
             mapView.isScrollEnabled = newView.interactionModes.contains(.pan)
             mapView.isZoomEnabled = newView.interactionModes.contains(.zoom)
-            #if !os(tvOS)
+#if !os(tvOS)
             mapView.isRotateEnabled = newView.interactionModes.contains(.rotate)
             mapView.isPitchEnabled = newView.interactionModes.contains(.pitch)
-            #endif
+#endif
         }
-
+        
         private func updateOverlays(on mapView: MKMapView, from previousView: Map?, to newView: Map) {
             let changes: CollectionDifference<OverlayItems.Element>
             if let previousView = previousView {
@@ -163,7 +163,7 @@ extension Map {
             } else {
                 changes = newView.overlayItems.difference(from: []) { $0.id == $1.id }
             }
-
+            
             for change in changes {
                 switch change {
                 case let .insert(index, item, _):
@@ -195,18 +195,18 @@ extension Map {
                 }
             }
         }
-
+        
         private func updatePointOfInterestFilter(on mapView: MKMapView, from previousView: Map?, to newView: Map) {
             if previousView?.pointOfInterestFilter != newView.pointOfInterestFilter {
                 mapView.pointOfInterestFilter = newView.pointOfInterestFilter
             }
         }
-
+        
         private func updateRegion(on mapView: MKMapView, from previousView: Map?, to newView: Map, animated: Bool) {
             guard !regionIsChanging else {
                 return
             }
-
+            
             if newView.usesRegion {
                 let newRegion = newView.coordinateRegion
                 guard !(previousView?.coordinateRegion.equals(to: newRegion) ?? false)
@@ -227,13 +227,13 @@ extension Map {
                 }
             }
         }
-
+        
         private func updateType(on mapView: MKMapView, from previousView: Map?, to newView: Map) {
             if previousView?.mapType != newView.mapType {
                 mapView.mapType = newView.mapType
             }
         }
-
+        
         private func updateUserTracking(on mapView: MKMapView, from previousView: Map?, to newView: Map) {
             if #available(macOS 11, *) {
                 let newTrackingMode = newView.userTrackingMode
@@ -242,9 +242,9 @@ extension Map {
                 }
             }
         }
-
+        
         // MARK: MKMapViewDelegate
-
+        
         public func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
             DispatchQueue.main.async { [weak self] in
                 self?.view?.coordinateRegion = mapView.region
@@ -252,7 +252,7 @@ extension Map {
                 self?.view?.camera?.wrappedValue = mapView.camera
             }
         }
-
+        
         @available(macOS 11, *)
         public func mapView(_ mapView: MKMapView, didChange mode: MKUserTrackingMode, animated: Bool) {
             guard let view = view, view.usesUserTrackingMode else {
@@ -264,24 +264,24 @@ extension Map {
             case .follow:
                 view.userTrackingMode = .follow
             case .followWithHeading:
-                #if os(macOS) || os(tvOS)
+#if os(macOS) || os(tvOS)
                 view.userTrackingMode = .follow
-                #else
+#else
                 view.userTrackingMode = .followWithHeading
-                #endif
+#endif
             @unknown default:
                 assertionFailure("Encountered unknown user tracking mode")
             }
         }
-
+        
         public func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
             regionIsChanging = true
         }
-
+        
         public func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
             regionIsChanging = false
         }
-
+        
         public func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             guard let content = overlayContentByObject[ObjectIdentifier(overlay)] else {
                 assertionFailure("Somehow an unknown overlay appeared.")
@@ -289,18 +289,18 @@ extension Map {
             }
             return content.renderer(for: mapView)
         }
-
+        
         public func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             guard let content = annotationContentByObject[ObjectIdentifier(annotation)] else {
                 return nil
             }
             
-          return content.view(for: mapView)
+            return content.view(for: mapView)
         }
     }
-
+    
     // MARK: Methods
-
+    
     public func makeCoordinator() -> Coordinator {
         Coordinator()
     }
