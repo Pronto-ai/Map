@@ -10,11 +10,11 @@
 import MapKit
 import SwiftUI
 
-class MKMapAnnotationView<Content: View>: MKAnnotationView {
+public class MKMapAnnotationView<Content: View>: MKAnnotationView {
 
     // MARK: Stored Properties
 
-    private var controller: NativeHostingController<Content>?
+    public var controller: NativeHostingController<Content>?
 
     // MARK: Methods
 
@@ -39,7 +39,7 @@ class MKMapAnnotationView<Content: View>: MKAnnotationView {
         }
     }
     #elseif os(iOS)
-    override func layoutSubviews() {
+    public override func layoutSubviews() {
         super.layoutSubviews()
 
         if let controller = controller {
@@ -48,7 +48,7 @@ class MKMapAnnotationView<Content: View>: MKAnnotationView {
     }
     #endif
 
-    override func prepareForReuse() {
+    public override func prepareForReuse() {
         super.prepareForReuse()
 
         #if canImport(UIKit)
