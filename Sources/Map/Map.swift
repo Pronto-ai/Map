@@ -11,7 +11,7 @@ import MapKit
 import SwiftUI
 
 public struct Map<AnnotationItems: RandomAccessCollection, OverlayItems: RandomAccessCollection>
-    where AnnotationItems.Element: Identifiable, OverlayItems.Element: Identifiable, AnnotationItems.Element: Equatable {
+    where AnnotationItems.Element: Identifiable, OverlayItems.Element: Identifiable {
 
     // MARK: Stored Properties
 
@@ -37,14 +37,6 @@ public struct Map<AnnotationItems: RandomAccessCollection, OverlayItems: RandomA
 
     let overlayItems: OverlayItems
     let overlayContent: (OverlayItems.Element) -> MapOverlay
-    
-    var modifiedAnnotationHandler: ((AnnotationItems.Element, MKPointAnnotation, MKAnnotationView) -> Void)?
-    
-    public func modifiedAnnotations(handler: @escaping (AnnotationItems.Element, MKPointAnnotation, MKAnnotationView) -> Void) -> Self {
-        var map = self
-        map.modifiedAnnotationHandler = handler
-        return map
-    }
 }
 
 // MARK: - Initialization
@@ -258,7 +250,7 @@ extension Map {
 
 #endif
 
-// MARK: - AnnotationItems == [IdentifiableObject<PointAnnotation>]
+// MARK: - AnnotationItems == [IdentifiableObject<MKAnnotation>]
 
 // The following initializers are most useful for either bridging with old MapKit code for annotations
 // or to actually not use annotations entirely.
@@ -679,7 +671,7 @@ extension Map where OverlayItems == [IdentifiableObject<MKOverlay>] {
 
 #endif
 
-// MARK: - AnnotationItems == [IdentifiableObject<PointAnnotation>], OverlayItems == [IdentifiableObject<MKOverlay>]
+// MARK: - AnnotationItems == [IdentifiableObject<MKAnnotation>], OverlayItems == [IdentifiableObject<MKOverlay>]
 
 // The following initializers are most useful for either bridging with old MapKit code
 // or to actually not use annotations/overlays entirely.
