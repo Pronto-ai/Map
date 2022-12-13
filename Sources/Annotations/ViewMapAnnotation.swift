@@ -29,7 +29,6 @@ public struct ViewMapAnnotation<Content: View>: MapAnnotation {
             self.title = title
             self.subtitle = subtitle
         }
-
     }
 
     // MARK: Static Functions

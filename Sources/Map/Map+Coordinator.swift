@@ -296,6 +296,11 @@ extension Map {
             return content.view(for: mapView)
         }
 
+      public func mapView(_ mapView: MKMapView, didSelect annotation: MKAnnotation) {
+        if let content = annotationContentByObject[ObjectIdentifier(annotation)] {
+          content.onTap()
+        }
+      }
     }
 
     // MARK: Methods

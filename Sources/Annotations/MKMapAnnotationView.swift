@@ -9,6 +9,24 @@
 
 import MapKit
 import SwiftUI
+import UIKit
+
+struct SizePreferenceKey: PreferenceKey {
+  static var defaultValue: CGSize = .zero
+  static func reduce(value: inout CGSize, nextValue: () -> CGSize) {}
+}
+
+extension View {
+  func readSize(onChange: @escaping (CGSize) -> Void) -> some View {
+    background(
+      GeometryReader { geometryProxy in
+        Color.clear
+          .preference(key: SizePreferenceKey.self, value: geometryProxy.size)
+      }
+    )
+    .onPreferenceChange(SizePreferenceKey.self, perform: onChange)
+  }
+}
 
 public class MKMapAnnotationView<Content: View>: MKAnnotationView {
 
@@ -20,13 +38,16 @@ public class MKMapAnnotationView<Content: View>: MKAnnotationView {
 
     func setup(for mapAnnotation: ViewMapAnnotation<Content>) {
         annotation = mapAnnotation.annotation
-
         controller?.view.removeFromSuperview()
-        let controller = NativeHostingController(rootView: mapAnnotation.content, ignoreSafeArea: true)
+        var controller = NativeHostingController(rootView: mapAnnotation.content, ignoreSafeArea: true)
         addSubview(controller.view)
-        bounds.size = controller.preferredContentSize
-        self.controller = controller
+//      bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
+      self.controller = controller
     }
+  
+  @objc func handleTap(_ sender: UITapGestureRecognizer? = nil) {
+    print()
+  }
 
     // MARK: Overrides
   
@@ -35,7 +56,8 @@ public class MKMapAnnotationView<Content: View>: MKAnnotationView {
         super.layout()
         
         if let controller = controller {
-            bounds.size = controller.preferredContentSize
+//            bounds.size = controller.preferredContentSize
+//          bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
         }
     }
     #elseif os(iOS)
@@ -43,7 +65,11 @@ public class MKMapAnnotationView<Content: View>: MKAnnotationView {
         super.layoutSubviews()
 
         if let controller = controller {
-            bounds.size = controller.preferredContentSize
+//            bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
+          
+//          controller.view.layoutSubviews()
+//          print("size:", controller.view.subviews.first?.frame.size ?? .zero)
+//          bounds.size = controller.view.subviews.first?.frame.size ?? .zero
         }
     }
     #endif
@@ -58,7 +84,106 @@ public class MKMapAnnotationView<Content: View>: MKAnnotationView {
         controller?.removeFromParent()
         controller = nil
     }
+  
+  public func configureConstraints() {
+    self.translatesAutoresizingMaskIntoConstraints = false
+//    if let controller {
+//      let size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
+//      let constraints = [
+//        controller.view.centerXAnchor.constraint(equalTo: self.centerXAnchor),
+//        controller.view.centerYAnchor.constraint(equalto),
+//        self.widthAnchor.constraint(equalToConstant: size.width),
+//        self.heightAnchor.constraint(equalToConstant: size.height)
+//      ]
+//      NSLayoutConstraint.activate(constraints)
+//    }
+    
+  }
+  
+//  public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+//    return nil
+//  }
 }
+
+public class MKMapAnnotationViewWithLabel<Content: View, Label: View>: MKAnnotationView {
+  
+  // MARK: Stored Properties
+  
+  public var controller: NativeHostingController<Content>?
+  public var label: NativeHostingController<Label>?
+  
+  // MARK: Methods
+  
+  func setup(for mapAnnotation: ViewMapAnnotation<Content>) {
+    annotation = mapAnnotation.annotation
+    controller?.view.removeFromSuperview()
+    var controller = NativeHostingController(rootView: mapAnnotation.content, ignoreSafeArea: true)
+    addSubview(controller.view)
+    //      bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
+    self.controller = controller
+  }
+  
+  @objc func handleTap(_ sender: UITapGestureRecognizer? = nil) {
+    print()
+  }
+  
+  // MARK: Overrides
+  
+#if os(macOS)
+  override func layout() {
+    super.layout()
+    
+    if let controller = controller {
+      //            bounds.size = controller.preferredContentSize
+      //          bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
+    }
+  }
+#elseif os(iOS)
+  public override func layoutSubviews() {
+    super.layoutSubviews()
+    
+    if let controller = controller {
+      //            bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
+      
+      //          controller.view.layoutSubviews()
+      //          print("size:", controller.view.subviews.first?.frame.size ?? .zero)
+      //          bounds.size = controller.view.subviews.first?.frame.size ?? .zero
+    }
+  }
+#endif
+  
+  public override func prepareForReuse() {
+    super.prepareForReuse()
+    
+#if canImport(UIKit)
+    controller?.willMove(toParent: nil)
+#endif
+    controller?.view.removeFromSuperview()
+    controller?.removeFromParent()
+    controller = nil
+  }
+  
+  public func configureConstraints() {
+    self.translatesAutoresizingMaskIntoConstraints = false
+    //    if let controller {
+    //      let size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
+    //      let constraints = [
+    //        controller.view.centerXAnchor.constraint(equalTo: self.centerXAnchor),
+    //        controller.view.centerYAnchor.constraint(equalto),
+    //        self.widthAnchor.constraint(equalToConstant: size.width),
+    //        self.heightAnchor.constraint(equalToConstant: size.height)
+    //      ]
+    //      NSLayoutConstraint.activate(constraints)
+    //    }
+    
+  }
+  
+  //  public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+  //    return nil
+  //  }
+}
+
+
 
 extension UIHostingController {
   /// This convenience init uses dynamic subclassing to disable safe area behaviour for a UIHostingController
