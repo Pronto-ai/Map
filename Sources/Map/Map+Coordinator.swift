@@ -22,6 +22,7 @@ extension Map {
 
         private var annotationContentByObject = [ObjectIdentifier: MapAnnotation]()
         private var annotationContentByID = [AnnotationItems.Element.ID: MapAnnotation]()
+        private var annotationItemByObject = [ObjectIdentifier: AnnotationItems.Element]()
 
         private var overlayContentByObject = [ObjectIdentifier: MapOverlay]()
         private var overlayContentByID = [OverlayItems.Element.ID: MapOverlay]()
@@ -94,6 +95,7 @@ extension Map {
                     }
                     annotationContentByID[item.id] = content
                     annotationContentByObject[objectKey] = content
+                    annotationItemByObject[objectKey] = item
                     registerAnnotationViewIfNeeded(on: mapView, for: content)
                     mapView.addAnnotation(content.annotation)
                 case let .remove(_, item, _):
@@ -290,17 +292,23 @@ extension Map {
         }
 
         public func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            if let cluster = annotation as? MKClusterAnnotation, let view {
+              let clusterItems = cluster.memberAnnotations.compactMap { annotationItemByObject[ObjectIdentifier($0)] }
+              guard let content = view._clusterContent?(cluster.coordinate, clusterItems) else {
+                return nil
+              }
+              
+              registerAnnotationViewIfNeeded(on: mapView, for: content)
+              
+              return content.view(for: mapView)
+            }
+          
             guard let content = annotationContentByObject[ObjectIdentifier(annotation)] else {
                 return nil
             }
+          
             return content.view(for: mapView)
         }
-
-      public func mapView(_ mapView: MKMapView, didSelect annotation: MKAnnotation) {
-        if let content = annotationContentByObject[ObjectIdentifier(annotation)] {
-          content.onTap()
-        }
-      }
     }
 
     // MARK: Methods

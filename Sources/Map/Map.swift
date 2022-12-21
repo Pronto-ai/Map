@@ -37,6 +37,14 @@ public struct Map<AnnotationItems: RandomAccessCollection, OverlayItems: RandomA
 
     let overlayItems: OverlayItems
     let overlayContent: (OverlayItems.Element) -> MapOverlay
+  
+  var _clusterContent: ((CLLocationCoordinate2D, [AnnotationItems.Element]) -> MapAnnotation)?
+  
+  public func clusterContent(@MapAnnotationBuilder annotationContent: @escaping (CLLocationCoordinate2D, [AnnotationItems.Element]) -> MapAnnotation) -> Self {
+    var copy = self
+    copy._clusterContent = annotationContent
+    return copy
+  }
 }
 
 // MARK: - Initialization

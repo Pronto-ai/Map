@@ -11,23 +11,6 @@ import MapKit
 import SwiftUI
 import UIKit
 
-struct SizePreferenceKey: PreferenceKey {
-  static var defaultValue: CGSize = .zero
-  static func reduce(value: inout CGSize, nextValue: () -> CGSize) {}
-}
-
-extension View {
-  func readSize(onChange: @escaping (CGSize) -> Void) -> some View {
-    background(
-      GeometryReader { geometryProxy in
-        Color.clear
-          .preference(key: SizePreferenceKey.self, value: geometryProxy.size)
-      }
-    )
-    .onPreferenceChange(SizePreferenceKey.self, perform: onChange)
-  }
-}
-
 public class MKMapAnnotationView<Content: View>: MKAnnotationView {
 
     // MARK: Stored Properties
@@ -84,25 +67,6 @@ public class MKMapAnnotationView<Content: View>: MKAnnotationView {
         controller?.removeFromParent()
         controller = nil
     }
-  
-  public func configureConstraints() {
-    self.translatesAutoresizingMaskIntoConstraints = false
-//    if let controller {
-//      let size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
-//      let constraints = [
-//        controller.view.centerXAnchor.constraint(equalTo: self.centerXAnchor),
-//        controller.view.centerYAnchor.constraint(equalto),
-//        self.widthAnchor.constraint(equalToConstant: size.width),
-//        self.heightAnchor.constraint(equalToConstant: size.height)
-//      ]
-//      NSLayoutConstraint.activate(constraints)
-//    }
-    
-  }
-  
-//  public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-//    return nil
-//  }
 }
 
 public class MKMapAnnotationViewWithLabel<Content: View, Label: View>: MKAnnotationView {
@@ -111,47 +75,9 @@ public class MKMapAnnotationViewWithLabel<Content: View, Label: View>: MKAnnotat
   
   public var controller: NativeHostingController<Content>?
   public var label: NativeHostingController<Label>?
+  public var onTap: (() -> Void)?
   
   // MARK: Methods
-  
-  func setup(for mapAnnotation: ViewMapAnnotation<Content>) {
-    annotation = mapAnnotation.annotation
-    controller?.view.removeFromSuperview()
-    var controller = NativeHostingController(rootView: mapAnnotation.content, ignoreSafeArea: true)
-    addSubview(controller.view)
-    //      bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
-    self.controller = controller
-  }
-  
-  @objc func handleTap(_ sender: UITapGestureRecognizer? = nil) {
-    print()
-  }
-  
-  // MARK: Overrides
-  
-#if os(macOS)
-  override func layout() {
-    super.layout()
-    
-    if let controller = controller {
-      //            bounds.size = controller.preferredContentSize
-      //          bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
-    }
-  }
-#elseif os(iOS)
-  public override func layoutSubviews() {
-    super.layoutSubviews()
-    
-    if let controller = controller {
-      //            bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
-      
-      //          controller.view.layoutSubviews()
-      //          print("size:", controller.view.subviews.first?.frame.size ?? .zero)
-      //          bounds.size = controller.view.subviews.first?.frame.size ?? .zero
-    }
-  }
-#endif
-  
   public override func prepareForReuse() {
     super.prepareForReuse()
     
@@ -161,26 +87,37 @@ public class MKMapAnnotationViewWithLabel<Content: View, Label: View>: MKAnnotat
     controller?.view.removeFromSuperview()
     controller?.removeFromParent()
     controller = nil
-  }
-  
-  public func configureConstraints() {
-    self.translatesAutoresizingMaskIntoConstraints = false
-    //    if let controller {
-    //      let size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
-    //      let constraints = [
-    //        controller.view.centerXAnchor.constraint(equalTo: self.centerXAnchor),
-    //        controller.view.centerYAnchor.constraint(equalto),
-    //        self.widthAnchor.constraint(equalToConstant: size.width),
-    //        self.heightAnchor.constraint(equalToConstant: size.height)
-    //      ]
-    //      NSLayoutConstraint.activate(constraints)
-    //    }
     
+#if canImport(UIKit)
+    label?.willMove(toParent: nil)
+#endif
+    label?.view.removeFromSuperview()
+    label?.removeFromParent()
+    label = nil
   }
   
-  //  public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-  //    return nil
-  //  }
+  // We need to use the hit test because otherwise moving annotations don't trigger
+  // `touchesEnded`.
+  public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+    switch event?.type {
+    case .touches:
+      let frameSize = self.frame.size
+      if point.x >= 0, point.x <= frameSize.width, point.y >= 0, point.y <= frameSize.height {
+        return self
+      }
+      return nil
+    default:
+      return nil
+    }
+  }
+  
+  public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+    onTap?()
+  }
+  
+  public override var intrinsicContentSize: CGSize {
+    return self.controller?.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity)) ?? .zero
+  }
 }
 
 
