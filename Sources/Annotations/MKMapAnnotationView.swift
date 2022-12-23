@@ -26,6 +26,7 @@ public class MKMapAnnotationView<Content: View>: MKAnnotationView {
         addSubview(controller.view)
 //      bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
       self.controller = controller
+      self.displayPriority = .defaultHigh
     }
   
   @objc func handleTap(_ sender: UITapGestureRecognizer? = nil) {

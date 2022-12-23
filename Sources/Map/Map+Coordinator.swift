@@ -32,6 +32,9 @@ extension Map {
 
         private var registeredAnnotationTypes = Set<ObjectIdentifier>()
         private var regionIsChanging = false
+      
+        private var clusteredAnnotations = Set<ObjectIdentifier>()
+        private var unclusteredAnnotations = Set<ObjectIdentifier>()
 
         // MARK: Initialization
 
@@ -300,15 +303,26 @@ extension Map {
               
               registerAnnotationViewIfNeeded(on: mapView, for: content)
               
+              for annotation in cluster.memberAnnotations {
+                self.clusteredAnnotations.insert(ObjectIdentifier(annotation))
+                self.unclusteredAnnotations.remove(ObjectIdentifier(annotation))
+              }
+              
               return content.view(for: mapView)
             }
           
             guard let content = annotationContentByObject[ObjectIdentifier(annotation)] else {
                 return nil
             }
-          
+            
+            self.unclusteredAnnotations.insert(ObjectIdentifier(annotation))
+            self.clusteredAnnotations.remove(ObjectIdentifier(annotation))
             return content.view(for: mapView)
         }
+      
+      public func mapView(_ mapView: MKMapView, clusterAnnotationForMemberAnnotations memberAnnotations: [MKAnnotation]) -> MKClusterAnnotation {
+        return MKClusterAnnotation(memberAnnotations: memberAnnotations)
+      }
     }
 
     // MARK: Methods
