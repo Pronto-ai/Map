@@ -9,24 +9,29 @@
 
 import MapKit
 import SwiftUI
+import UIKit
 
-class MKMapAnnotationView<Content: View>: MKAnnotationView {
+public class MKMapAnnotationView<Content: View>: MKAnnotationView {
 
     // MARK: Stored Properties
 
-    private var controller: NativeHostingController<Content>?
+    public var controller: NativeHostingController<Content>?
 
     // MARK: Methods
 
     func setup(for mapAnnotation: ViewMapAnnotation<Content>) {
         annotation = mapAnnotation.annotation
-
         controller?.view.removeFromSuperview()
-        let controller = NativeHostingController(rootView: mapAnnotation.content, ignoreSafeArea: true)
+        var controller = NativeHostingController(rootView: mapAnnotation.content, ignoreSafeArea: true)
         addSubview(controller.view)
-        bounds.size = controller.preferredContentSize
-        self.controller = controller
+//      bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
+      self.controller = controller
+      self.displayPriority = .defaultHigh
     }
+  
+  @objc func handleTap(_ sender: UITapGestureRecognizer? = nil) {
+    print()
+  }
 
     // MARK: Overrides
   
@@ -35,20 +40,25 @@ class MKMapAnnotationView<Content: View>: MKAnnotationView {
         super.layout()
         
         if let controller = controller {
-            bounds.size = controller.preferredContentSize
+//            bounds.size = controller.preferredContentSize
+//          bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
         }
     }
     #elseif os(iOS)
-    override func layoutSubviews() {
+    public override func layoutSubviews() {
         super.layoutSubviews()
 
         if let controller = controller {
-            bounds.size = controller.preferredContentSize
+//            bounds.size = controller.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity))
+          
+//          controller.view.layoutSubviews()
+//          print("size:", controller.view.subviews.first?.frame.size ?? .zero)
+//          bounds.size = controller.view.subviews.first?.frame.size ?? .zero
         }
     }
     #endif
 
-    override func prepareForReuse() {
+    public override func prepareForReuse() {
         super.prepareForReuse()
 
         #if canImport(UIKit)
@@ -59,6 +69,59 @@ class MKMapAnnotationView<Content: View>: MKAnnotationView {
         controller = nil
     }
 }
+
+public class MKMapAnnotationViewWithLabel<Content: View, Label: View>: MKAnnotationView {
+  
+  // MARK: Stored Properties
+  
+  public var controller: NativeHostingController<Content>?
+  public var label: NativeHostingController<Label>?
+  public var onTap: (() -> Void)?
+  
+  // MARK: Methods
+  public override func prepareForReuse() {
+    super.prepareForReuse()
+    
+#if canImport(UIKit)
+    controller?.willMove(toParent: nil)
+#endif
+    controller?.view.removeFromSuperview()
+    controller?.removeFromParent()
+    controller = nil
+    
+#if canImport(UIKit)
+    label?.willMove(toParent: nil)
+#endif
+    label?.view.removeFromSuperview()
+    label?.removeFromParent()
+    label = nil
+  }
+  
+  // We need to use the hit test because otherwise moving annotations don't trigger
+  // `touchesEnded`.
+  public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+    switch event?.type {
+    case .touches:
+      let frameSize = self.frame.size
+      if point.x >= 0, point.x <= frameSize.width, point.y >= 0, point.y <= frameSize.height {
+        return self
+      }
+      return nil
+    default:
+      return nil
+    }
+  }
+  
+  public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+    onTap?()
+  }
+  
+  public override var intrinsicContentSize: CGSize {
+    return self.controller?.view.sizeThatFits(.init(width: CGFloat.infinity, height: CGFloat.infinity)) ?? .zero
+  }
+}
+
+
 
 extension UIHostingController {
   /// This convenience init uses dynamic subclassing to disable safe area behaviour for a UIHostingController

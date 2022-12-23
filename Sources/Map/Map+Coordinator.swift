@@ -21,9 +21,8 @@ extension Map {
         private var view: Map?
 
         private var annotationContentByObject = [ObjectIdentifier: MapAnnotation]()
-        private var elementByObject = [ObjectIdentifier: AnnotationItems.Element]()
         private var annotationContentByID = [AnnotationItems.Element.ID: MapAnnotation]()
-        private var viewByObject = [ObjectIdentifier: MKAnnotationView]()
+        private var annotationItemByObject = [ObjectIdentifier: AnnotationItems.Element]()
 
         private var overlayContentByObject = [ObjectIdentifier: MapOverlay]()
         private var overlayContentByID = [OverlayItems.Element.ID: MapOverlay]()
@@ -33,6 +32,9 @@ extension Map {
 
         private var registeredAnnotationTypes = Set<ObjectIdentifier>()
         private var regionIsChanging = false
+      
+        private var clusteredAnnotations = Set<ObjectIdentifier>()
+        private var unclusteredAnnotations = Set<ObjectIdentifier>()
 
         // MARK: Initialization
 
@@ -76,42 +78,12 @@ extension Map {
         private func updateAnnotations(on mapView: MKMapView, from previousView: Map?, to newView: Map) {
             let changes: CollectionDifference<AnnotationItems.Element>
             if let previousView = previousView {
-                changes = newView.annotationItems.difference(from: previousView.annotationItems) { $0 == $1 }
+                changes = newView.annotationItems.difference(from: previousView.annotationItems) { $0.id == $1.id }
             } else {
-                changes = newView.annotationItems.difference(from: []) { $0 == $1 }
+                changes = newView.annotationItems.difference(from: []) { $0.id == $1.id }
             }
-            
-            let changeElement = { (change: CollectionDifference<AnnotationItems.Element>.Change) -> AnnotationItems.Element in
-                switch change {
-                case let .insert(_, element, _):
-                    return element
-                case let .remove(_, element, _):
-                    return element
-                }
-            }
-            
-            let changeId = { change in
-                return changeElement(change).id
-            }
-            
-            let insertionSet = Set(changes.insertions.map(changeId))
-            let removalsSet = Set(changes.removals.map(changeId))
-            let modificationsSet = insertionSet.intersection(removalsSet)
-            // we're only looking at insertions to avoid duplicates
-            let modificationsList = changes.insertions.lazy.filter { modificationsSet.contains(changeId($0)) }.map(changeElement)
-            
-            for modification in modificationsList {
-                if
-                    let content = annotationContentByID[modification.id],
-                    let annotationView = viewByObject[ObjectIdentifier(content.annotation)],
-                    let annotation = content.annotation as? MKPointAnnotation
-                {
-                    view?.modifiedAnnotationHandler?(modification, annotation, annotationView)
-                }
-            }
-        
-            let changesWithoutModifications = changes.filter { !modificationsSet.contains(changeId($0)) }
-            for change in changesWithoutModifications {
+
+            for change in changes {
                 switch change {
                 case let .insert(_, item, _):
                     guard !annotationContentByID.keys.contains(item.id) else {
@@ -126,10 +98,9 @@ extension Map {
                     }
                     annotationContentByID[item.id] = content
                     annotationContentByObject[objectKey] = content
-                    elementByObject[objectKey] = item
+                    annotationItemByObject[objectKey] = item
                     registerAnnotationViewIfNeeded(on: mapView, for: content)
                     mapView.addAnnotation(content.annotation)
-                    
                 case let .remove(_, item, _):
                     guard let content = annotationContentByID[item.id] else {
                         assertionFailure("Missing annotation content for item \(item) encountered.")
@@ -137,8 +108,6 @@ extension Map {
                     }
                     mapView.removeAnnotation(content.annotation)
                     annotationContentByObject.removeValue(forKey: ObjectIdentifier(content.annotation))
-                    viewByObject.removeValue(forKey: ObjectIdentifier(content.annotation))
-                    elementByObject.removeValue(forKey: ObjectIdentifier(content.annotation))
                     annotationContentByID.removeValue(forKey: item.id)
                 }
             }
@@ -326,22 +295,34 @@ extension Map {
         }
 
         public func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            if let cluster = annotation as? MKClusterAnnotation, let view {
+              let clusterItems = cluster.memberAnnotations.compactMap { annotationItemByObject[ObjectIdentifier($0)] }
+              guard let content = view._clusterContent?(cluster.coordinate, clusterItems) else {
+                return nil
+              }
+              
+              registerAnnotationViewIfNeeded(on: mapView, for: content)
+              
+              for annotation in cluster.memberAnnotations {
+                self.clusteredAnnotations.insert(ObjectIdentifier(annotation))
+                self.unclusteredAnnotations.remove(ObjectIdentifier(annotation))
+              }
+              
+              return content.view(for: mapView)
+            }
+          
             guard let content = annotationContentByObject[ObjectIdentifier(annotation)] else {
                 return nil
             }
             
-            let annotationView = content.view(for: mapView)
-            viewByObject[ObjectIdentifier(annotation)] = annotationView
-            
-            guard
-                let annotationView = annotationView,
-                let element = elementByObject[ObjectIdentifier(annotation)],
-                let annotation = content.annotation as? MKPointAnnotation
-            else { return annotationView }
-            
-            view?.modifiedAnnotationHandler?(element, annotation, annotationView)
-            return annotationView
+            self.unclusteredAnnotations.insert(ObjectIdentifier(annotation))
+            self.clusteredAnnotations.remove(ObjectIdentifier(annotation))
+            return content.view(for: mapView)
         }
+      
+      public func mapView(_ mapView: MKMapView, clusterAnnotationForMemberAnnotations memberAnnotations: [MKAnnotation]) -> MKClusterAnnotation {
+        return MKClusterAnnotation(memberAnnotations: memberAnnotations)
+      }
     }
 
     // MARK: Methods
@@ -349,6 +330,7 @@ extension Map {
     public func makeCoordinator() -> Coordinator {
         Coordinator()
     }
+
 }
 
 #endif
