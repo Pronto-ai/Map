@@ -32,7 +32,6 @@ public protocol MapAnnotation {
     // MARK: Methods
 
     func view(for mapView: MKMapView) -> MKAnnotationView?
-
 }
 
 extension MapAnnotation {
@@ -40,7 +39,6 @@ extension MapAnnotation {
     static var reuseIdentifier: String {
         "__MAP__" + String(describing: self) + "__MAP__"
     }
-
 }
 
 #endif

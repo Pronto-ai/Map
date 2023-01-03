@@ -10,7 +10,7 @@
 import MapKit
 import SwiftUI
 
-public struct ViewMapAnnotation<Content: View>: MapAnnotation {
+public struct ViewMapAnnotation<Content: View, Label: View>: MapAnnotation {
 
     // MARK: Nested Types
 
@@ -35,13 +35,15 @@ public struct ViewMapAnnotation<Content: View>: MapAnnotation {
     // MARK: Static Functions
 
     public static func registerView(on mapView: MKMapView) {
-        mapView.register(MKMapAnnotationView<Content>.self, forAnnotationViewWithReuseIdentifier: reuseIdentifier)
+        mapView.register(MKMapAnnotationView<Content, Label>.self, forAnnotationViewWithReuseIdentifier: reuseIdentifier)
     }
 
     // MARK: Stored Properties
 
     public let annotation: MKAnnotation
+    public let onTap: (() -> Void)?
     let content: Content
+    let label: Label
 
     // MARK: Initialization
 
@@ -49,18 +51,25 @@ public struct ViewMapAnnotation<Content: View>: MapAnnotation {
         coordinate: CLLocationCoordinate2D,
         title: String? = nil,
         subtitle: String? = nil,
+        onTap: @escaping () -> Void,
+        @ViewBuilder label: () -> Label = { EmptyView() },
         @ViewBuilder content: () -> Content
     ) {
         self.annotation = Annotation(coordinate: coordinate, title: title, subtitle: subtitle)
+        self.onTap = onTap
+        self.label = label()
         self.content = content()
     }
 
     public init(
         annotation: MKAnnotation,
+        @ViewBuilder label: () -> Label = { EmptyView() },
         @ViewBuilder content: () -> Content
     ) {
         self.annotation = annotation
+        self.label = label()
         self.content = content()
+        self.onTap = { }
     }
 
     // MARK: Methods
@@ -69,7 +78,7 @@ public struct ViewMapAnnotation<Content: View>: MapAnnotation {
         let view = mapView.dequeueReusableAnnotationView(
             withIdentifier: Self.reuseIdentifier,
             for: annotation
-        ) as? MKMapAnnotationView<Content>
+        ) as? MKMapAnnotationView<Content, Label>
 
         view?.setup(for: self)
         return view
