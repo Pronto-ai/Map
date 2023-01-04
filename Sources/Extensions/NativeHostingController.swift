@@ -10,13 +10,13 @@
 import UIKit
 import SwiftUI
 
-typealias NativeHostingController = UIHostingController
+public typealias NativeHostingController = UIHostingController
 
 #elseif canImport(AppKit)
 
 import AppKit
 import SwiftUI
 
-typealias NativeHostingController = NSHostingController
+public typealias NativeHostingController = NSHostingController
 
 #endif

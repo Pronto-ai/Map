@@ -9,10 +9,10 @@ let package = Package(
         .library(name: "Map", targets: ["Map"]),
     ],
     dependencies: [
-//      .package(url: "https://github.com/efremidze/Cluster", from: "3.0.3")
+      .package(url: "https://github.com/efremidze/Cluster", from: "3.0.3")
     ],
     targets: [
-        .target(name: "Map", dependencies: [], path: "Sources"),
+        .target(name: "Map", dependencies: ["Cluster"], path: "Sources"),
         .testTarget(name: "MapTests", dependencies: ["Map"], path: "Tests"),
     ]
 )

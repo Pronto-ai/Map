@@ -26,8 +26,8 @@ extension ViewMapAnnotation: SwiftUIMapAnnotation { }
 open class MKMapAnnotationView<Content: View, Label: View>: MKAnnotationView {
     
     // MARK: Stored Properties
-    private var labelController: NativeHostingController<Label>?
-    private var controller: NativeHostingController<Content>?
+    public var labelController: NativeHostingController<Label>?
+    public var controller: NativeHostingController<Content>?
     public var onTap: (() -> Void)?
     
     // MARK: Methods

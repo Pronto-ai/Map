@@ -8,7 +8,32 @@
 import MapKit
 import SwiftUI
 import Foundation
-//import Cluster
+import Cluster
+
+class CountClusterAnnotationView: ClusterAnnotationView {
+  override func configure() {
+    super.configure()
+    
+    guard let annotation = annotation as? ClusterAnnotation else { return }
+    let count = annotation.annotations.count
+    let diameter = radius(for: count) * 2
+    self.frame.size = CGSize(width: diameter, height: diameter)
+    self.layer.cornerRadius = self.frame.width / 2
+    self.layer.masksToBounds = true
+    self.layer.borderColor = UIColor.white.cgColor
+    self.layer.borderWidth = 1.5
+  }
+  
+  func radius(for count: Int) -> CGFloat {
+    if count < 5 {
+      return 12
+    } else if count < 10 {
+      return 16
+    } else {
+      return 20
+    }
+  }
+}
 
 #if !os(watchOS)
 
@@ -39,7 +64,7 @@ extension Map {
         public var clusteredAnnotations = Set<ObjectIdentifier>()
         public var unclusteredAnnotations = Set<ObjectIdentifier>()
         
-//        let clusterManager = ClusterManager()
+        let clusterManager = ClusterManager()
 
         // MARK: Initialization
 
@@ -106,7 +131,7 @@ extension Map {
                     annotationItemByObject[objectKey] = item
                     registerAnnotationViewIfNeeded(on: mapView, for: content)
                     mapView.addAnnotation(content.annotation)
-//                    clusterManager.add(content.annotation)
+                    clusterManager.add(content.annotation)
                 case let .remove(_, item, _):
                     guard let content = annotationContentByID[item.id] else {
                         assertionFailure("Missing annotation content for item \(item) encountered.")
@@ -115,12 +140,14 @@ extension Map {
                     mapView.removeAnnotation(content.annotation)
                     annotationContentByObject.removeValue(forKey: ObjectIdentifier(content.annotation))
                     annotationContentByID.removeValue(forKey: item.id)
-//                    clusterManager.remove(content.annotation)
+                    clusterManager.remove(content.annotation)
                 }
             }
             
             if !changes.isEmpty {
-//                clusterManager.reload(mapView: mapView)
+              clusterManager.reload(mapView: mapView) { didComplete in
+                print(didComplete)                
+              }
             }
         }
 
@@ -300,6 +327,11 @@ extension Map {
             } else {
                 mapViewDidChangeVisibleRegion(mapView)
             }
+          
+          
+          clusterManager.reload(mapView: mapView) { finished in
+            // handle completion
+          }
         }
 
         public func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
@@ -311,53 +343,31 @@ extension Map {
         }
 
         public func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-//            if let cluster = annotation as? ClusterAnnotation {
-//                let clusterItems: [AnnotationItems.Element] = cluster.annotations.compactMap { annotationItemByObject[ObjectIdentifier($0)] }
-//                guard let content = view?._clusterContent?(cluster.coordinate, clusterItems) else {
-//                    return nil
-//                }
-//
-//                registerAnnotationViewIfNeeded(on: mapView, for: content)
-//
-//                for annotation in cluster.annotations {
-//                    self.clusteredAnnotations.insert(ObjectIdentifier(annotation))
-//                    self.unclusteredAnnotations.remove(ObjectIdentifier(annotation))
-//                }
-//
-//                return content.view(for: mapView, coordinator: self)
-//            } else {
+            if let cluster = annotation as? ClusterAnnotation {
+                let clusterItems: [AnnotationItems.Element] = cluster.annotations.compactMap { annotationItemByObject[ObjectIdentifier($0)] }
+                guard let content = view?._clusterContent?(cluster.coordinate, clusterItems) else {
+                    return nil
+                }
+
+                registerAnnotationViewIfNeeded(on: mapView, for: content)
+
+                for annotation in cluster.annotations {
+                    self.clusteredAnnotations.insert(ObjectIdentifier(annotation))
+                    self.unclusteredAnnotations.remove(ObjectIdentifier(annotation))
+                }
+
+                return content.view(for: mapView)
+              
+//              return CountClusterAnnotationView(annotation: annotation, reuseIdentifier: "cluster")
+            } else {
                 guard let content = annotationContentByObject[ObjectIdentifier(annotation)] else {
                     return nil
                 }
                 self.clusteredAnnotations.remove(ObjectIdentifier(annotation))
                 self.unclusteredAnnotations.insert(ObjectIdentifier(annotation))
-                return content.view(for: mapView, coordinator: self)
-//            }
+                return content.view(for: mapView)
+            }
         }
-        
-//        public func mapView(
-//            _ mapView: MKMapView,
-//            clusterAnnotationForMemberAnnotations memberAnnotations: [MKAnnotation]
-//        ) -> MKClusterAnnotation {
-////            var closeMembers = [MKAnnotation]()
-//            print("Start Cluster")
-//            for annotation in memberAnnotations {
-//                for otherAnnotation in memberAnnotations {
-//                    let point = CLLocation(
-//                        latitude: annotation.coordinate.latitude,
-//                        longitude: annotation.coordinate.longitude
-//                    )
-//                    let otherPoint = CLLocation(
-//                        latitude: annotation.coordinate.latitude,
-//                        longitude: otherAnnotation.coordinate.longitude
-//                    )
-//
-//                    let dist = point.distance(from: otherPoint)
-//                    print("distance:", dist)
-//                }
-//            }
-//            return MKClusterAnnotation(memberAnnotations: memberAnnotations)
-//        }
     }
 
     // MARK: Methods

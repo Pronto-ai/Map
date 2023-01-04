@@ -31,10 +31,10 @@ public protocol MapAnnotation {
 
     // MARK: Methods
 
-    func view<AnnotationItems: RandomAccessCollection, OverlayItems: RandomAccessCollection>(for mapView: MKMapView, coordinator: Map<AnnotationItems, OverlayItems>.Coordinator) -> MKAnnotationView?
+    func view(for mapView: MKMapView) -> MKAnnotationView?
 }
 
-extension MapAnnotation {
+public extension MapAnnotation {
 
     static var reuseIdentifier: String {
         "__MAP__" + String(describing: self) + "__MAP__"

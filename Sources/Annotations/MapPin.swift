@@ -91,7 +91,7 @@ extension MapPin: MapAnnotation {
             forAnnotationViewWithReuseIdentifier: reuseIdentifier)
     }
 
-    public func view<AnnotationItems: RandomAccessCollection, OverlayItems: RandomAccessCollection>(for mapView: MKMapView, coordinator: Map<AnnotationItems, OverlayItems>.Coordinator) -> MKAnnotationView? {
+    public func view(for mapView: MKMapView) -> MKAnnotationView? {
         let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.reuseIdentifier, for: annotation)
         view.annotation = annotation
         if #available(iOS 14, macOS 11, tvOS 14, *), let tint = tint, let pin = view as? MKPinAnnotationView {
