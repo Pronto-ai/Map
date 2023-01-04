@@ -10,6 +10,19 @@
 import MapKit
 import SwiftUI
 
+public protocol SwiftUIMapAnnotation<Content, Label> {
+  associatedtype Content: View
+  associatedtype Label: View
+  
+  var annotation: MKAnnotation { get }
+  var content: Content { get }
+  var label: Label { get }
+  
+  var onTap: (() -> Void)? { get }
+}
+
+extension ViewMapAnnotation: SwiftUIMapAnnotation { }
+
 open class MKMapAnnotationView<Content: View, Label: View>: MKAnnotationView {
     
     // MARK: Stored Properties
@@ -19,8 +32,10 @@ open class MKMapAnnotationView<Content: View, Label: View>: MKAnnotationView {
     
     // MARK: Methods
     
-    func setup(for mapAnnotation: ViewMapAnnotation<Content, Label>) {
+    public func setup<T: SwiftUIMapAnnotation<Content, Label>>(for mapAnnotation: T) {
         annotation = mapAnnotation.annotation
+        
+        self.prepareForReuse()
         
         let controller = NativeHostingController(rootView: mapAnnotation.content)
         let labelController = NativeHostingController(rootView: mapAnnotation.label)
@@ -31,8 +46,8 @@ open class MKMapAnnotationView<Content: View, Label: View>: MKAnnotationView {
         addSubview(controller.view)
         addSubview(labelController.view)
         
-        bounds.size = controller.preferredContentSize
         self.controller = controller
+        self.labelController = labelController
         // This blog post says that setting a display priority helps MapKit avoid layout thrash
         // https://medium.com/@worthbak/clustering-with-mapkit-on-ios-11-part-2-2418a865543b
         self.displayPriority = .defaultHigh
@@ -40,6 +55,13 @@ open class MKMapAnnotationView<Content: View, Label: View>: MKAnnotationView {
         self.onTap = mapAnnotation.onTap
         
         configureConstraints()
+        
+        bounds.size = self.controller?.view.sizeThatFits(
+            .init(
+                width: CGFloat.infinity,
+                height: CGFloat.infinity
+            )
+        ) ?? .zero
     }
     
     // MARK: Overrides
@@ -53,6 +75,13 @@ open class MKMapAnnotationView<Content: View, Label: View>: MKAnnotationView {
         controller?.view.removeFromSuperview()
         controller?.removeFromParent()
         controller = nil
+        
+        #if canImport(UIKit)
+        labelController?.willMove(toParent: nil)
+        #endif
+        labelController?.view.removeFromSuperview()
+        labelController?.removeFromParent()
+        labelController = nil
     }
     
     // We need to use the hit test because otherwise moving annotations don't trigger

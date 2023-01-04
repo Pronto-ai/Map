@@ -42,8 +42,8 @@ public struct ViewMapAnnotation<Content: View, Label: View>: MapAnnotation {
 
     public let annotation: MKAnnotation
     public let onTap: (() -> Void)?
-    let content: Content
-    let label: Label
+    public let content: Content
+    public let label: Label
 
     // MARK: Initialization
 
@@ -74,7 +74,7 @@ public struct ViewMapAnnotation<Content: View, Label: View>: MapAnnotation {
 
     // MARK: Methods
 
-    public func view(for mapView: MKMapView) -> MKAnnotationView? {
+    public func view<AnnotationItems: RandomAccessCollection, OverlayItems: RandomAccessCollection>(for mapView: MKMapView, coordinator: Map<AnnotationItems, OverlayItems>.Coordinator) -> MKAnnotationView? {
         let view = mapView.dequeueReusableAnnotationView(
             withIdentifier: Self.reuseIdentifier,
             for: annotation

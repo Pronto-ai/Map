@@ -66,7 +66,7 @@ extension MapMarker: MapAnnotation {
             forAnnotationViewWithReuseIdentifier: reuseIdentifier)
     }
 
-    public func view(for mapView: MKMapView) -> MKAnnotationView? {
+    public func view<AnnotationItems: RandomAccessCollection, OverlayItems: RandomAccessCollection>(for mapView: MKMapView, coordinator: Map<AnnotationItems, OverlayItems>.Coordinator) -> MKAnnotationView? {
         let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.reuseIdentifier, for: annotation)
         view.annotation = annotation
         if let marker = view as? MKMarkerAnnotationView {

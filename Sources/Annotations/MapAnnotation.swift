@@ -31,7 +31,7 @@ public protocol MapAnnotation {
 
     // MARK: Methods
 
-    func view(for mapView: MKMapView) -> MKAnnotationView?
+    func view<AnnotationItems: RandomAccessCollection, OverlayItems: RandomAccessCollection>(for mapView: MKMapView, coordinator: Map<AnnotationItems, OverlayItems>.Coordinator) -> MKAnnotationView?
 }
 
 extension MapAnnotation {
