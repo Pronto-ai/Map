@@ -8,8 +8,11 @@ let package = Package(
     products: [
         .library(name: "Map", targets: ["Map"]),
     ],
+    dependencies: [
+      .package(url: "https://github.com/efremidze/Cluster", from: "3.0.3")
+    ],
     targets: [
-        .target(name: "Map", path: "Sources"),
+        .target(name: "Map", dependencies: ["Cluster"], path: "Sources"),
         .testTarget(name: "MapTests", dependencies: ["Map"], path: "Tests"),
     ]
 )
