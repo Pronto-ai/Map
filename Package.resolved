@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Cluster",
+        "repositoryURL": "https://github.com/efremidze/Cluster",
+        "state": {
+          "branch": null,
+          "revision": "3c70568c779456355895adf354a01e7fe5440ebf",
+          "version": "3.0.3"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
